@@ -29,9 +29,14 @@ public struct HttpClient {
                     if case .transactionStatus = target.route {
                         
                     }else if _response.statusCode != 200{
+                        let message = String(decoding: _data, as: UTF8.self)
                         DispatchQueue.main.async {
-                            seal.reject(ArweaveApiError.responseError(stateCode: _response.statusCode))
+                            seal.reject(ArweaveApiError.responseError(
+                                stateCode: _response.statusCode,
+                                message: message
+                            ))
                         }
+                        return
                     }
                     DispatchQueue.main.async {
                         seal.fulfill(.init(data: _data,statusCode:_response.statusCode))

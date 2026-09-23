@@ -21,5 +21,5 @@ public enum ArweaveApiError: Error {
     case getBalanceError
     case getLastTransactionIdError
     case otherError(errorMessage: String)
-    case responseError(stateCode: Int)
+    case responseError(stateCode: Int, message: String)
 }

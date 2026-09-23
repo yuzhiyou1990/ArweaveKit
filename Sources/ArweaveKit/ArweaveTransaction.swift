@@ -117,8 +117,13 @@ public extension ArweaveTransaction {
             let commit = Arweave.shared.request(for: .commit(self))
             HttpClient.request(commit).done { response in
                 seal.fulfill(response.data)
-            }.catch { _ in
-                seal.reject(ArweaveApiError.commitError)
+            }.catch { error in
+                if case let ArweaveApiError.responseError(_, message) = error,
+                   !message.isEmpty {
+                    seal.reject(ArweaveApiError.otherError(errorMessage: message))
+                } else {
+                    seal.reject(ArweaveApiError.commitError)
+                }
             }
         }
     }
