@@ -176,7 +176,7 @@ public extension ArweaveTransaction {
 
     private static func deepHash(items: [DeepHashItem]) -> Data {
         let tag = Data("list\(items.count)".utf8)
-        var accumulator = tag
+        var accumulator = Data(SHA384.hash(data: tag))
 
         for item in items {
             let itemHash: Data
@@ -196,7 +196,10 @@ public extension ArweaveTransaction {
     static func deepHash(buffers: [Data]) -> Data {
         precondition(!buffers.isEmpty)
         let tag = "list".data(using: .utf8)! + String(buffers.count).data(using: .utf8)!
-        return deepHashChunks(chunks: buffers, acc: tag)
+        return deepHashChunks(
+            chunks: buffers,
+            acc: Data(SHA384.hash(data: tag))
+        )
     }
     
     static func deepHash(buffer: Data) -> Data {
