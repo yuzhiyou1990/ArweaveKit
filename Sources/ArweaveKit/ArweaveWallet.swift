@@ -37,7 +37,7 @@ public struct ArweaveWallet: Codable, Hashable, Comparable {
         let type = kSecAttrKeyTypeRSA
         let attributes: [String: Any] =
         [kSecAttrKeyType as String: type,
-         kSecAttrKeySizeInBits as String: 4096
+         kSecAttrKeySizeInBits as String: 2048
         ]
         var error: Unmanaged<CFError>?
         guard let _key = SecKeyCreateRandomKey(attributes as CFDictionary, &error)else {
