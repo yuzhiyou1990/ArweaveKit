@@ -123,4 +123,14 @@ final class WalletTests: XCTestCase {
         let amtInAR = transferAmount.converted(to: .AR)
         XCTAssertEqual(amtInAR.value, 0.000000000002, accuracy: 0e-12)
     }
+
+    func testTransferTransactionDefaultsToV2() {
+        let transaction = ArweaveTransaction(
+            amount: Amount(value: 1, unit: .winston),
+            target: ArweaveAddress(address: "target")
+        )
+
+        XCTAssertEqual(transaction.format, .v2)
+        XCTAssertEqual(transaction.data_size, "0")
+    }
 }

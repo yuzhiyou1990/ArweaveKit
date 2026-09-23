@@ -1,6 +1,5 @@
 import Foundation
 import CryptoKit
-import UIKit
 import PromiseKit
 
 public struct Chunks {
@@ -37,7 +36,7 @@ public extension ArweaveTransaction {
 }
 
 public struct ArweaveTransaction: Codable {
-    public var format = Format.v1
+    public var format = Format.v2
     public var id: TransactionId = ""
     public var last_tx: TransactionId = ""
     public var owner: String = ""
@@ -143,25 +142,52 @@ public extension ArweaveTransaction {
                 prepareChunks(data: self.rawData)
             }
             return Promise { seal in
-                ArweaveTransaction.anchor().done {[self] last_tx in
-                    seal.fulfill(ArweaveTransaction.deepHash(buffers:[
-                        withUnsafeBytes(of: format) { Data($0) },
-                        Data(base64URLEncoded: owner),
-                        Data(base64URLEncoded: target),
-                        quantity.data(using: .utf8),
-                        reward.data(using: .utf8),
-                        Data(base64URLEncoded: last_tx),
-                        tags.combined.data(using: .utf8),
-                        withUnsafeBytes(of: data_size) { Data($0) },
-                        Data(base64URLEncoded: data_root)
-                    ].compactMap { $0 }))
-                    
-                }.catch { error in
-                    seal.reject(error)
+                let tagList = tags.map { tag in
+                    DeepHashItem.list([
+                        .blob(Data(tag.name.utf8)),
+                        .blob(Data(tag.value.utf8))
+                    ])
                 }
+
+                seal.fulfill(ArweaveTransaction.deepHash(items: [
+                    .blob(Data(String(format.rawValue).utf8)),
+                    .blob(Data(base64URLEncoded: owner) ?? Data()),
+                    .blob(Data(base64URLEncoded: target) ?? Data()),
+                    .blob(Data(quantity.utf8)),
+                    .blob(Data(reward.utf8)),
+                    .blob(Data(base64URLEncoded: last_tx) ?? Data()),
+                    .list(tagList),
+                    .blob(Data(data_size.utf8)),
+                    .blob(Data(base64URLEncoded: data_root) ?? Data())
+                ]))
             }
         }
     }
+
+    private enum DeepHashItem {
+        case blob(Data)
+        case list([DeepHashItem])
+    }
+
+    private static func deepHash(items: [DeepHashItem]) -> Data {
+        let tag = Data("list\(items.count)".utf8)
+        var accumulator = tag
+
+        for item in items {
+            let itemHash: Data
+            switch item {
+            case .blob(let data):
+                itemHash = deepHash(buffer: data)
+            case .list(let nestedItems):
+                itemHash = deepHash(items: nestedItems)
+            }
+
+            accumulator = Data(SHA384.hash(data: accumulator + itemHash))
+        }
+
+        return accumulator
+    }
+
     static func deepHash(buffers: [Data]) -> Data {
         precondition(!buffers.isEmpty)
         let tag = "list".data(using: .utf8)! + String(buffers.count).data(using: .utf8)!
